@@ -2,13 +2,13 @@
 
 
 
-# 押注和抽探索卡
+# Start and Drawan exploration card
 
 ```java
 	/**
-	 * 下注
-	 * @param data 下注信息
-	 * @param user 用户
+	 * Select a planet
+	 * @param data 
+	 * @param user 
 	 */
 	private void bet(Map<String, String> data, User user) {
 		try {
@@ -18,27 +18,27 @@
 			// user.getUserGameM().userBetRecord(data);
 			// else
 			// status= -1;
-			// 0成功 -1非押注阶段
-			// 判断押注是否符合规则
+			// 0succeed -1no bet placed
+			// check if all in line with betting rules
 			Boolean isDataSuc = user.getUserGameM().userBetRecord(data);
 			if (!isDataSuc) {
 				status = -99;
-				desc = "下注失败,押注错误";
+				desc = "Betting failed,wrong betting";
 			}
-			// 判断押注是否为0
+			// check if the betting amount is 0
 			if (status == 0 && user.getUserGameM().getTotalBetCoin() == 0) {
 				status = -1;
-				desc = "下注失败,暂无押注";
+				desc = "Betting failed,no bet placed for now";
 			}
-			// 获取总押注
+			// Get the total amount of bet placed on planets
 			Double totalBet = user.getUserGameM().getTotalBetCoin().doubleValue();
 			if (status == 0 && !user.galaOut(totalBet)) {
 				status = -2;
-				desc = "下注失败,交易失败";
+				desc = "Betting failed,no bet placed for now";
 			}
 			String prize = "{}";
 			if (status == 0) {
-				// 计算奖励发奖
+				// Calculate bonus
 				OpenPrizeClient openPrizeClient = user.getUserGameTimeM().openPrize();
 				prize = JsonUtils.entity2Json(openPrizeClient);
 			}
@@ -46,22 +46,22 @@
 			if (status == 0) {
 				if (totalBet < 1000)
 					return;
-				// 出探索卡概率 EAT_BET= .1 EAT_PRIZE_YUNYING= .003 HARDRATE= .3
+				// get an exploration card odds EAT_BET= .1 EAT_PRIZE_YUNYING= .003 HARDRATE= .3
 				double rate = totalBet * (SysConstant.EAT_BET + SysConstant.EAT_PRIZE_YUNYING) * .1
 						* SysConstant.HARDRATE / 500;
 				if (rate > .5)
 					rate = .5;
 				double random = RandomUtils.nextDouble();
 				boolean flag = rate > random;
-				log.info(Msg.printMsgInfo(user, "探索卡概率[" + rate + "], 随机概率[" + random + "], 是否发放探索卡[" + flag + "]",
-						"判断是否抽探索卡"));
+				log.info(Msg.printMsgInfo(user, "get an exploration card odds[" + rate + "], randomized rate[" + random + "], whether sent to winners[" + flag + "]",
+						"Check if one drop an exploration card?"));
 				if (flag) {
 					UserBalanceM userBalanceM = user.getUserBalanceM();
 					String addr = userBalanceM.getAddr();
 					String itemId = ItemType.EXPLORE_CARD.getItemId();
 					String amount = "1";
 					String userId = userBalanceM.getUserId();
-					// 抽卡
+					// draw
 					baseInvoke.getHttpInterManager().addItemPost(addr, userId, itemId, amount);
 											baseInvoke.getPoolInfoManager().getPoolInfo().itemExploreCardCntAdd(Integer.valueOf(amount));
 				}
@@ -72,20 +72,20 @@
 	}
 ```
 
-# 用户押注记录并计算总押注
+# Transaction history and total amount
 
 ```java
 
 	/**
-	 * 用户押注记录并计算总押注
+	 * history of bet placed by users and total betting amount
 	 * 
 	 * @param data
-	 *            押注数据
+	 *            bet data
 	 */
 	public Boolean userBetRecord(Map<String, String> data) {
 		try {
 			String tempBetData = "";
-			// 获取总压住
+			// get total amount of bet
 			for (Entry<BetType, Integer> entry : curBetMap.entrySet()) {
 				BetType key = entry.getKey();
 				Integer betCoin = data.get(key.getId()) == null ? 0 : Integer.parseInt(data.get(key.getId()));
@@ -95,11 +95,11 @@
 			}
 			logger.debug("### totalBetCoin: " + totalBetCoin);
 			logger.debug("### curBetMap: " + tempBetData.substring(0, tempBetData.length() - 1));
-			// 获取最小押注结果
+			// get minimal betting amount
 			final int betCoinMin = BetCoinType.findBetCoinMin();
-			// 判断是否符合规则
+			// check if betting rules are met
 			if (totalBetCoin % betCoinMin != 0) {
-				logger.error(JsonUtils.entity2Json(data), "押注数据错误[用户自定义接口,取消本次押注] ### parameter");
+				logger.error(JsonUtils.entity2Json(data), "wrong betting data[user’s custom port,bet canceled]  ### parameter");
 				resetData();
 				return false;
 			}
@@ -112,20 +112,20 @@
 
 ```
 
-# 扣除gala
+# Deduct gala
 
 ```java
 	/**
-	 * 扣除gala
+	 * deduct gala
 	 * @param gala 
-	 * @return 是否扣款成功
+	 * @return check if it is successfully
 	 */
 	public boolean galaOut(Double gala) {
 		return userBalanceM.galaOut(gala);
 	}
 
 	/**
-	 * http 扣除gala
+	 * http deduct gala
 	 * @param gala
 	 * @return
 	 */
@@ -142,7 +142,7 @@
 		Boolean verify= false;
 		String hash= "";
 		try {
-			// 获得交易hash
+			// get transaction hash
 			hash = futureGalaOut.get();
 		} catch (InterruptedException e) {
 			log.error("", e);
@@ -152,34 +152,34 @@
 		if(StringUtils.isEmpty(hash))
 			return verify;
 		SenderMsg.userMsg(user, Protocol.oper_hash(hash, GalaOperType.OUT));
-		// 确认交易hash
+ 		// confirm transaction hash
 		verify= contractManager.getSmartEventCodeByHash(hash);
 		return verify;
 	}
 	
 ```
 
-# 开奖
+# “Start” button
 
 ```java
 	/**
-	 * 开奖
+	 * tag in each round of “Start”
 	 * 
-	 * @return 奖励结果对象
+	 * @return check out the result
 	 */
 	public final OpenPrizeClient openPrize() {
-		// 每局标示
+		// each round mark
 		everyId = IdGenerator.generate();
-		// 获取开奖结果
+		// check out the result
 		OpenPrize openPrize = user.getUserGameM().userBet();
 		if (openPrize == null) {
 			return new OpenPrizeClient(null);
 		}
-		// 生成客户端需要数据
+		// generate the data required by client-side
 		OpenPrizeClient openPrizeClient = new OpenPrizeClient(openPrize);
-		// 发奖并记录数据
+		// distribute the bonus and record data
 		user.getUserGameM().sendPrize(everyId);
-		// 重置数据
+		// Reset data
 		user.getUserGameM().resetData();
 
 		return openPrizeClient;
@@ -187,18 +187,18 @@
 
 ```
 
-## 计算押注进入奖池 计算费用
+## To calculate the prize pool and cost
 
 ```java
 	/**
-	 * 计算押注进入奖池 计算费用
+	 * To calculate the prize pool and cost
 	 */
 	public OpenPrize userBet() {
 		try {
-			// 计算每个押注奖励
+			// calculate Gala reward for each round
 			for (Entry<BetType, Integer> entry : curBetMap.entrySet())
 				prizeMap.put(entry.getKey(), entry.getValue() * entry.getKey().getMul());
-			// 根据奖池获取开奖
+			// winner set based on prize pool
 			openPrize = PoolManager.addPoolAndCalcPrize(totalBetCoin, user.getUserDataInfo(), prizeMap);
 			logger.debug("### userDataInfo ### " + user.getUserDataInfo().toString());
 			logger.debug("### openPrize ### " + openPrize.toString());
@@ -211,32 +211,32 @@
 
 ```
 
-## 操作奖池
+## How prize pool works
 
 ```java
 	/**
-	 * 操作奖池
+	 * the way price pool works
 	 * 
 	 * @param betCoin
-	 *            押注总金额
+	 *            total amount of Gala
 	 * @param userDataInfo
-	 *            用户数据
+	 *            user data
 	 * @param prizeMap
-	 *            押注对应奖励
-	 * @return 当前操作累加后的用户数据
+	 *            prize mapping 
+	 * @return 
 	 */
 	public static synchronized OpenPrize addPoolAndCalcPrize(long betCoin, UserDataInfo userDataInfo,
 			Map<BetType, Double> prizeMap) {
-		// 总押注
+		// total amount of Gala
 		final long totalCoin = betCoin;
-		// 增加奖池
+		// expand prize pool
 		Pool.operPool(totalCoin);
 
-		// 数据记录
+		// data record
 		userDataInfo.addAddPool(totalCoin);
 		userDataInfo.addTotalBet(totalCoin);
 
-		// 根据当前奖池踢出高于当前奖池奖励
+		// remove prize higher than current prize pool
 		final Map<BetType, Double> openPrizeMap = new HashMap<>(prizeMap);
 		for (Entry<BetType, Double> entry : prizeMap.entrySet()) {
 			BetType betType = entry.getKey();
@@ -245,31 +245,31 @@
 				openPrizeMap.remove(betType);
 		}
 		OpenPrize openPrize = null;
-		// 获取开奖结果
+		// access the result
 		if (!openPrizeMap.isEmpty())
 			openPrize = calcPrize(openPrizeMap);
 		else
 			log.error(JsonUtils.entity2Json(prizeMap) + " ### " + PoolManager.getPool(),
-					"开奖错误[奖池不够开不出奖励] ### 押注信息 ### 操作奖池");
+		"Start” error[more Gala needed to be staked into the prize pool] ### bet info ### assess prize pool")
 		if (openPrize != null) {
-			// 扣除奖池 每次扣除增加2个gala
+			// 2 gala consumed per “start”
 			if (openPrize.getPrize() != 0d)
 				Pool.operPool(-(openPrize.getPrize() + 2));
 
-			// 计算开奖费用
+			// calculate reward 
 			final Double prize = openPrize.getPrize();
 			// jp EAT_PRIZE_JP= .01
 			final Double eatJp = prize * SysConstant.EAT_PRIZE_JP;
-			// 平台运营 EAT_PRIZE_YUNYING= .003
+			// Platform operation  EAT_PRIZE_YUNYING= .003
 			final Double eatPrizeYunying = prize * SysConstant.EAT_PRIZE_YUNYING;
-			// 基金会 EAT_PRIZE_JIJINHUI= .001
+			// Foundation EAT_PRIZE_JIJINHUI= .001
 			final Double eatPrizeJijinhui = prize * SysConstant.EAT_PRIZE_JIJINHUI;
-			// 星球主 EAT_PRIZE_XINGQIUZU= .006
+			// CG planet owners EAT_PRIZE_XINGQIUZU= .006
 			final Double eatPrizeXingqiu = prize * SysConstant.EAT_PRIZE_XINGQIUZU;
-			// 得到实际奖励
+			// get reward
 			final Double realPrize = prize - eatPrizeYunying - eatPrizeJijinhui - eatPrizeXingqiu - eatJp;
 
-			// 数据记录
+			// Data record
 			userDataInfo.addEatPrizeYunying(eatPrizeYunying);
 			userDataInfo.addEatPrizeJijinhui(eatPrizeJijinhui);
 			userDataInfo.addEatPrizeXingqiu(eatPrizeXingqiu);
@@ -289,15 +289,15 @@
 
 ```
 
-## 计算开奖结果
+## Calculate award
 
 ```java
 	/**
-	 * 计算开奖结果 
+	 * Calculate the amount of prize 
 	 * 
 	 * @param prizeMap
-	 *            每个押注获得奖励
-	 * @return 开奖结果
+	 *            award per “Start”
+	 * @return result
 	 */
 	private static OpenPrize calcPrize(Map<BetType, Double> prizeMap) {
 		try {
@@ -318,31 +318,31 @@
 	}
 ```
 
-## 发送奖励
+## issue reward
 
 ```java
 	/**
-	 * 发奖
+	 * give award
 	 */
 	public void sendPrize(String everyId) {
 		try {
 			if (openPrize == null)
 				return;
-			// 奖励结果
+			// result
 			Double addCoin = openPrize.getPrize();
 			final PrizeManager prizeManager = baseInvoke.getPrizeManager();
-			// 调用合约增加gala
+			// increase Gala by call of smart contract
 			prizeManager.addPrize(user, OperType.OPEN_PRIZE, new IdWithCnt(PrizeType.GALA.getId(), addCoin.toString()));
-			// 历史数据 大于50重置
+			// reset when > 50
 			if (openPrizeHis.size() >= SysConstant.OPEN_HIS_CNT)
 				openPrizeHis.clear();
 			openPrizeHis.addFirst(openPrize.getBetTypeRes().getId());
-			// 全局发送用户获奖消息
+			// inform player award      
 			if (openPrize.getPrize() != 0)
 				SenderMsg.allServerMsgUserSay(user, JsonUtils.entity2Json(new UserSayDto(user, openPrize)));
-			// 发送历史消息
+			// send past records
 			SenderMsg.userMsg(user, Protocol.update_openHis(JsonUtils.list2Json(openPrizeHis)));
-			// 数据记录
+			// data record
 			final UserBetInfoManager userBetInfoManager = baseInvoke.getUserBetInfoManager();
 			UserBetInfo userBetInfo = new UserBetInfo(user, openPrize.getBetTypeRes().getId(), openPrize.getPrize(),
 					totalBetCoin, everyId);
